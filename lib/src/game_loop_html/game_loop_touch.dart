@@ -26,7 +26,8 @@ class _GameLoopTouchEvent {
   static const Start = 0x3;
   final TouchEvent event;
   final int type;
-  _GameLoopTouchEvent(this.event, this.type);
+  final double timeStamp;
+  _GameLoopTouchEvent(this.event, this.type, this.timeStamp);
 }
 /** The position of a touch at a given time and frame. */
 class GameLoopTouchPosition implements PositionInput {

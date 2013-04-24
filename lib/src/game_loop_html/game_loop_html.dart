@@ -45,6 +45,8 @@ class GameLoopHtml extends GameLoop {
   int _frameCounter = 0;
   bool _initialized = false;
   bool _interrupt = false;
+  double _interruptTime = 0.0;
+  double _timeLost = 0.0;
   double _previousFrameTime;
   double _frameTime = 0.0;
   bool _resizePending = false;
@@ -55,6 +57,9 @@ class GameLoopHtml extends GameLoop {
 
   /** Frame counter value. Incremented once per frame. */
   int get frame => _frameCounter;
+
+  double get time => timeStampToSeconds(
+      window.performance.now());
 
   double maxAccumulatedTime = 0.03;
   double _accumulatedTime = 0.0;
@@ -95,23 +100,39 @@ class GameLoopHtml extends GameLoop {
   }
 
   void _processInputEvents() {
-    for (KeyboardEvent keyboardEvent in _keyboardEvents) {
+    var idx = 0;
+    double currentVirtualTime = _gameTime + _timeLost;
+    for(idx=0;_keyboardEvents.length > idx; idx++) {
+      double timeStamp = timeStampToSeconds(_keyboardEventTime[idx]);
+      if(currentVirtualTime < timeStamp) {
+        idx--;
+        break;
+      }
+      KeyboardEvent keyboardEvent = _keyboardEvents[idx];
       DigitalButtonEvent event;
       bool down = keyboardEvent.type == "keydown";
-      double time = GameLoop.timeStampToSeconds(keyboardEvent.timeStamp);
+
       int buttonId = keyboardEvent.keyCode;
-      event = new DigitalButtonEvent(buttonId, down, frame, time);
+      event = new DigitalButtonEvent(buttonId, down, frame, timeStamp);
       _keyboard.digitalButtonEvent(event);
     }
-    _keyboardEvents.clear();
+    if(idx > 0) {
+      _keyboardEvents.removeRange(0, idx);
+      _keyboardEventTime.removeRange(0, idx);
+    }
     mouse._resetAccumulators();
     int canvasX = element.offset.left;
     int canvasY = element.offset.top;
-    for (MouseEvent mouseEvent in _mouseEvents) {
+    for(idx=0;_mouseEvents.length > idx; idx++) {
+      double timeStamp = timeStampToSeconds(_mouseEventTime[idx]);
+      if(currentVirtualTime < timeStamp) {
+        idx--;
+        break;
+      }
+      MouseEvent mouseEvent = _mouseEvents[idx];
       bool moveEvent = mouseEvent.type == 'mousemove';
       bool wheelEvent = mouseEvent.type == 'mousewheel';
       bool down = mouseEvent.type == 'mousedown';
-      double time = GameLoop.timeStampToSeconds(mouseEvent.timeStamp);
       if (moveEvent) {
         int mouseX = mouseEvent.page.x;
         int mouseY = mouseEvent.page.y;
@@ -140,19 +161,29 @@ class GameLoopHtml extends GameLoop {
 
         int dx = mouseEvent.movement.x;
         int dy = mouseEvent.movement.y;
-        var event = new GameLoopMouseEvent(x, y, dx, dy, clampX, clampY, withinCanvas, time, frame);
+        var event = new GameLoopMouseEvent(x, y, dx, dy, clampX, clampY, withinCanvas, timeStamp, frame);
         _mouse.gameLoopMouseEvent(event);
       } else if (wheelEvent) {
         WheelEvent wheel = mouseEvent as WheelEvent;
         _mouse._accumulateWheel(wheel.deltaX, wheel.deltaY);
       } else {
         int buttonId = mouseEvent.button;
-        var event = new DigitalButtonEvent(buttonId, down, frame, time);
+        var event = new DigitalButtonEvent(buttonId, down, frame, timeStamp);
         _mouse.digitalButtonEvent(event);
       }
     }
-    _mouseEvents.clear();
-    for (_GameLoopTouchEvent touchEvent in _touchEvents) {
+    if(idx > 0) {
+      _mouseEvents.removeRange(0, idx);
+      _mouseEventTime.removeRange(0, idx);
+    }
+
+    idx = 0;
+    for(idx=0; idx < _touchEvents.length; idx++) {
+      _GameLoopTouchEvent touchEvent = _touchEvents[idx];
+      if(timeStampToSeconds(touchEvent.timeStamp) > currentVirtualTime) {
+        idx--;
+        break;
+      }
       switch (touchEvent.type) {
         case _GameLoopTouchEvent.Start:
           _touchSet._start(touchEvent.event);
@@ -166,9 +197,14 @@ class GameLoopHtml extends GameLoop {
         default:
           throw new StateError('Invalid _GameLoopTouchEven type.');
       }
+
     }
-    _touchEvents.clear();
-  }
+
+    if(idx > 0) {
+      _touchEvents.removeRange(0, idx-1);
+    }
+}
+
 
   void _requestAnimationFrame(num _) {
     if (_previousFrameTime == null) {
@@ -179,6 +215,7 @@ class GameLoopHtml extends GameLoop {
       return;
     }
     if (_interrupt == true) {
+      _interruptTime = time;
       return;
     }
     window.requestAnimationFrame(_requestAnimationFrame);
@@ -190,17 +227,21 @@ class GameLoopHtml extends GameLoop {
     if (_accumulatedTime > maxAccumulatedTime) {
       // If the animation frame callback was paused we may end up with
       // a huge time delta. Clamp it to something reasonable.
+      _timeLost += _accumulatedTime-maxAccumulatedTime;
       _accumulatedTime = maxAccumulatedTime;
     }
     // TODO(johnmccutchan): Process input events in update loop.
-    _processInputEvents();
+
     while (_accumulatedTime >= updateTimeStep) {
-      processTimers();
       _gameTime += updateTimeStep;
+      _processInputEvents();
+      _processTimers();
+
       if (onUpdate != null) {
         onUpdate(this);
       }
       _accumulatedTime -= updateTimeStep;
+
     }
     if(_resizePending == true && onResize != null && _nextResize <= _frameTime){
       onResize(this);
@@ -230,39 +271,47 @@ class GameLoopHtml extends GameLoop {
 
   final List<_GameLoopTouchEvent> _touchEvents = new List<_GameLoopTouchEvent>();
   void _touchStartEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Start));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Start, window.performance.now()));
   }
   void _touchMoveEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Move));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Move, window.performance.now()));
   }
   void _touchEndEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.End));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.End, window.performance.now()));
   }
 
   final List<KeyboardEvent> _keyboardEvents = new List<KeyboardEvent>();
+  final List<double> _keyboardEventTime = new List<double>();
   void _keyDown(KeyboardEvent event) {
     _keyboardEvents.add(event);
+    _keyboardEventTime.add(window.performance.now());
   }
 
   void _keyUp(KeyboardEvent event) {
     _keyboardEvents.add(event);
+    _keyboardEventTime.add(window.performance.now());
   }
 
   final List<MouseEvent> _mouseEvents = new List<MouseEvent>();
+  final List<double> _mouseEventTime = new List<double>();
   void _mouseDown(MouseEvent event) {
     _mouseEvents.add(event);
+    _mouseEventTime.add(window.performance.now());
   }
 
   void _mouseUp(MouseEvent event) {
     _mouseEvents.add(event);
+    _mouseEventTime.add(window.performance.now());
   }
 
   void _mouseMove(MouseEvent event) {
     _mouseEvents.add(event);
+    _mouseEventTime.add(window.performance.now());
   }
 
   void _mouseWheel(MouseEvent event) {
     _mouseEvents.add(event);
+    _mouseEventTime.add(window.performance.now());
     event.preventDefault();
   }
 
@@ -291,6 +340,7 @@ class GameLoopHtml extends GameLoop {
       _initialized = true;
     }
     _interrupt = false;
+    _timeLost += time - _interruptTime;
     window.requestAnimationFrame(_requestAnimationFrame);
   }
 
