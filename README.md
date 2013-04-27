@@ -39,7 +39,13 @@ dependencies:
 2\. Add the correct import for your project. 
 
 ```dart
-import 'package:game_loop/game_loop.dart';
+import 'package:game_loop/game_loop_html.dart';
+```
+
+*OR*
+
+```dart
+import 'package:game_loop/game_loop_isolate.dart';
 ```
 
 # Documentation #
