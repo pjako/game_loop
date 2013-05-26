@@ -173,18 +173,21 @@ class GameLoopHtml extends GameLoop {
     _touchEvents.clear();
   }
 
+  int _rafId;
+
   void _requestAnimationFrame(num _) {
     if (_previousFrameTime == null) {
       _frameTime = time;
       _previousFrameTime = _frameTime;
       _processInputEvents();
-      window.requestAnimationFrame(_requestAnimationFrame);
+      _rafId = window.requestAnimationFrame(_requestAnimationFrame);
       return;
     }
     if (_interrupt == true) {
+      _rafId = null;
       return;
     }
-    window.requestAnimationFrame(_requestAnimationFrame);
+    _rafId = window.requestAnimationFrame(_requestAnimationFrame);
     _frameCounter++;
     _previousFrameTime = _frameTime;
     _frameTime = time;
@@ -294,11 +297,15 @@ class GameLoopHtml extends GameLoop {
       _initialized = true;
     }
     _interrupt = false;
-    window.requestAnimationFrame(_requestAnimationFrame);
+    _rafId = window.requestAnimationFrame(_requestAnimationFrame);
   }
 
   /** Stop the game loop. */
   void stop() {
+    if (_rafId != null) {
+      window.cancelAnimationFrame(_rafId);
+      _rafId = null;
+    }
     _interrupt = true;
   }
 
