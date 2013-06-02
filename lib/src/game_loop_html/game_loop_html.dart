@@ -108,6 +108,7 @@ class GameLoopHtml extends GameLoop {
     }
     _keyboardEvents.clear();
     mouse._resetAccumulators();
+    // TODO(alexgann): Remove custom offset logic once dart:html supports natively (M6).
     final docElem = document.documentElement;
     final box = element.getBoundingClientRect();
     int canvasX = (box.left + window.pageXOffset - docElem.clientLeft).floor();
