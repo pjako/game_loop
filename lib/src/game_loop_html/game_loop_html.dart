@@ -108,8 +108,10 @@ class GameLoopHtml extends GameLoop {
     }
     _keyboardEvents.clear();
     mouse._resetAccumulators();
-    int canvasX = element.offset.left;
-    int canvasY = element.offset.top;
+    final docElem = document.documentElement;
+    final box = element.getBoundingClientRect();
+    int canvasX = (box.left + window.pageXOffset - docElem.clientLeft).floor();
+    int canvasY = (box.top  + window.pageYOffset - docElem.clientTop).floor();
     for (MouseEvent mouseEvent in _mouseEvents) {
       bool moveEvent = mouseEvent.type == 'mousemove';
       bool wheelEvent = mouseEvent.type == 'mousewheel';
