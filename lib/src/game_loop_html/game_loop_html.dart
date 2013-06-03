@@ -116,7 +116,7 @@ class GameLoopHtml extends GameLoop {
   void _processKeyboardEvents(double currentVirtualTime) {
     int idx = 0;
     for (;_keyboardEvents.length > idx; idx++) {
-      double timeStamp = timeStampToSeconds(_keyboardEventTime[idx]);
+      double timeStamp = _keyboardEventTime[idx];
       if(currentVirtualTime < timeStamp) {
         idx--;
         break;
