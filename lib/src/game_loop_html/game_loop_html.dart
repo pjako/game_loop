@@ -47,6 +47,7 @@ class GameLoopHtml extends GameLoop {
   bool _interrupt = false;
   double _previousFrameTime;
   double _frameTime = 0.0;
+  double get frameTime => _frameTime;
   bool _resizePending = false;
   double _nextResize = 0.0;
 
@@ -64,6 +65,8 @@ class GameLoopHtml extends GameLoop {
   int get height => element.client.height;
 
   double _gameTime = 0.0;
+  double get gameTime => _gameTime;
+
   double _renderInterpolationFactor = 0.0;
   double get renderInterpolationFactor => _renderInterpolationFactor;
   /** The minimum amount of time between two onResize calls in seconds*/
@@ -79,6 +82,7 @@ class GameLoopHtml extends GameLoop {
   /** Mouse. */
   Mouse get mouse => _mouse;
   GameLoopGamepad _gamepad0;
+  Point _lastMousePos = new Point(0,0);
   /** Gamepad #0. */
   GameLoopGamepad get gamepad0 => _gamepad0;
   /** Touch */
@@ -95,6 +99,12 @@ class GameLoopHtml extends GameLoop {
   }
 
   void _processInputEvents() {
+    _processKeyboardEvents();
+    _processMouseEvents();
+    _processTouchEvents();
+  }
+  
+  void _processKeyboardEvents() {
     for (KeyboardEvent keyboardEvent in _keyboardEvents) {
       DigitalButtonEvent event;
       bool down = keyboardEvent.type == "keydown";
@@ -104,9 +114,15 @@ class GameLoopHtml extends GameLoop {
       _keyboard.digitalButtonEvent(event);
     }
     _keyboardEvents.clear();
+  }
+
+  void _processMouseEvents() {
     mouse._resetAccumulators();
-    int canvasX = element.offset.left;
-    int canvasY = element.offset.top;
+    // TODO(alexgann): Remove custom offset logic once dart:html supports natively (M6).
+    final docElem = document.documentElement;
+    final box = element.getBoundingClientRect();
+    int canvasX = (box.left + window.pageXOffset - docElem.clientLeft).floor();
+    int canvasY = (box.top  + window.pageYOffset - docElem.clientTop).floor();
     for (MouseEvent mouseEvent in _mouseEvents) {
       bool moveEvent = mouseEvent.type == 'mousemove';
       bool wheelEvent = mouseEvent.type == 'mousewheel';
@@ -137,9 +153,10 @@ class GameLoopHtml extends GameLoop {
         } else {
           clampY = y;
         }
-
-        int dx = mouseEvent.movement.x;
-        int dy = mouseEvent.movement.y;
+        
+        int dx = mouseEvent.client.x-_lastMousePos.x;
+        int dy = mouseEvent.client.y-_lastMousePos.y;
+        _lastMousePos = mouseEvent.client;
         var event = new GameLoopMouseEvent(x, y, dx, dy, clampX, clampY, withinCanvas, time, frame);
         _mouse.gameLoopMouseEvent(event);
       } else if (wheelEvent) {
@@ -152,6 +169,9 @@ class GameLoopHtml extends GameLoop {
       }
     }
     _mouseEvents.clear();
+  }
+  
+  void _processTouchEvents() {
     for (_GameLoopTouchEvent touchEvent in _touchEvents) {
       switch (touchEvent.type) {
         case _GameLoopTouchEvent.Start:
@@ -170,18 +190,21 @@ class GameLoopHtml extends GameLoop {
     _touchEvents.clear();
   }
 
+  int _rafId;
+
   void _requestAnimationFrame(num _) {
     if (_previousFrameTime == null) {
       _frameTime = time;
       _previousFrameTime = _frameTime;
       _processInputEvents();
-      window.requestAnimationFrame(_requestAnimationFrame);
+      _rafId = window.requestAnimationFrame(_requestAnimationFrame);
       return;
     }
     if (_interrupt == true) {
+      _rafId = null;
       return;
     }
-    window.requestAnimationFrame(_requestAnimationFrame);
+    _rafId = window.requestAnimationFrame(_requestAnimationFrame);
     _frameCounter++;
     _previousFrameTime = _frameTime;
     _frameTime = time;
@@ -291,11 +314,15 @@ class GameLoopHtml extends GameLoop {
       _initialized = true;
     }
     _interrupt = false;
-    window.requestAnimationFrame(_requestAnimationFrame);
+    _rafId = window.requestAnimationFrame(_requestAnimationFrame);
   }
 
   /** Stop the game loop. */
   void stop() {
+    if (_rafId != null) {
+      window.cancelAnimationFrame(_rafId);
+      _rafId = null;
+    }
     _interrupt = true;
   }
 
