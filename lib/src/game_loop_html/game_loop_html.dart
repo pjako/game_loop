@@ -129,7 +129,7 @@ class GameLoopHtml extends GameLoop {
       event = new DigitalButtonEvent(buttonId, down, frame, time);
       _keyboard.digitalButtonEvent(event);
     }
-    if(idx > 0) {
+    if (idx > 0) {
       _keyboardEvents.removeRange(0, idx);
       _keyboardEventTime.removeRange(0, idx);
     }
@@ -143,7 +143,7 @@ class GameLoopHtml extends GameLoop {
     int canvasX = (box.left + window.pageXOffset - docElem.clientLeft).floor();
     int canvasY = (box.top  + window.pageYOffset - docElem.clientTop).floor();
     int idx = 0;
-    for(;_mouseEvents.length > idx; idx++) {
+    for(;idx < _mouseEvents.length; idx++) {
       double timeStamp = _mouseEventTime[idx];
       if(currentVirtualTime < timeStamp) {
         idx--;
@@ -194,7 +194,7 @@ class GameLoopHtml extends GameLoop {
         _mouse.digitalButtonEvent(event);
       }
     }
-    if(idx > 0) {
+    if (idx > 0) {
       _mouseEvents.removeRange(0, idx);
       _mouseEventTime.removeRange(0, idx);
     }
@@ -202,7 +202,7 @@ class GameLoopHtml extends GameLoop {
 
   void _processTouchEvents(double currentVirtualTime) {
     int idx = 0;
-    for(idx=0; idx < _touchEvents.length; idx++) {
+    for(; idx < _touchEvents.length; idx++) {
       _GameLoopTouchEvent touchEvent = _touchEvents[idx];
       if(touchEvent.time > currentVirtualTime) {
         idx--;
@@ -223,7 +223,7 @@ class GameLoopHtml extends GameLoop {
           throw new StateError('Invalid _GameLoopTouchEven type.');
       }
     }
-    if(idx > 0) {
+    if (idx > 0) {
       _touchEvents.removeRange(0, idx-1);
     }
   }
@@ -292,13 +292,16 @@ class GameLoopHtml extends GameLoop {
 
   final List<_GameLoopTouchEvent> _touchEvents = new List<_GameLoopTouchEvent>();
   void _touchStartEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Start, time));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Start,
+        time));
   }
   void _touchMoveEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Move, time));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.Move,
+        time));
   }
   void _touchEndEvent(TouchEvent event) {
-    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.End, time));
+    _touchEvents.add(new _GameLoopTouchEvent(event, _GameLoopTouchEvent.End,
+        time));
   }
 
   final List<KeyboardEvent> _keyboardEvents = new List<KeyboardEvent>();
