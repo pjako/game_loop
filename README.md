@@ -39,7 +39,13 @@ dependencies:
 2\. Add the correct import for your project. 
 
 ```dart
-import 'package:game_loop/game_loop.dart';
+import 'package:game_loop/game_loop_html.dart';
+```
+
+*OR*
+
+```dart
+import 'package:game_loop/game_loop_isolate.dart';
 ```
 
 # Documentation #
@@ -59,7 +65,7 @@ import 'package:game_loop/game_loop.dart';
 ```dart
 main() {
   // Construct a game loop.
-  GameLoop gameLoop = new GameLoop(canvasElement);
+  GameLoopHtml gameLoop = new GameLoopHtml(canvasElement);
 }
 ```
 
@@ -68,7 +74,7 @@ main() {
 ```dart
 main() {
   // Construct a game loop.
-  GameLoop gameLoop = new GameLoop(canvasElement);
+  GameLoopHtml gameLoop = new GameLoopHtml(canvasElement);
   gameLoop.onUpdate = ((gameLoop) {
     // Update game logic here.
     print('${gameLoop.frame}: ${gameLoop.gameTime} [dt = ${gameLoop.dt}].');
@@ -82,7 +88,7 @@ main() {
 ```dart
 main() {
   // Construct a game loop.
-  GameLoop gameLoop = new GameLoop(canvasElement);
+  GameLoopHtml gameLoop = new GameLoopHtml(canvasElement);
   gameLoop.onUpdate = ((gameLoop) {
     // Update game logic here.
     print('${gameLoop.frame}: ${gameLoop.gameTime} [dt = ${gameLoop.dt}].');
@@ -101,7 +107,7 @@ main() {
 ```dart
 main() {
   // Construct a game loop.
-  GameLoop gameLoop = new GameLoop(canvasElement);
+  GameLoopHtml gameLoop = new GameLoopHtml(canvasElement);
   gameLoop.onUpdate = ((gameLoop) {
     print('${gameLoop.frame}: ${gameLoop.frameTime} [dt = ${gameLoop.dt}].');
   });
